@@ -1,5 +1,7 @@
 # create venv
+```cmd
 python -m venv venv
+```
 # Activate the virtual environment
    - **macOS/Linux:**
      ```bash
