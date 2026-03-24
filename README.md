@@ -1,3 +1,8 @@
+# go to project directory
+```cmd
+cd chitara_project
+```
+
 # create venv
 ```cmd
 python -m venv venv
