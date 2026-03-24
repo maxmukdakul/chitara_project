@@ -11,17 +11,27 @@ python -m venv venv
      ```
 
 # install dependencies
+```cmd
 pip install -r requirements.txt
+```
 
 # apply Database Migrations
+```cmd
 python manage.py makemigrations domain
+```
+```
 python manage.py migrate
+```
 
 # create an admin superuser
+```cmd
 python manage.py createsuperuser
+```
 
 # run
+```cmd
 python manage.py runserver
+```
 
 # go to
 http://127.0.0.1:8000/admin/
