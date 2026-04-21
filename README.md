@@ -85,9 +85,9 @@ The Mock strategy simulates song generation locally. It is deterministic and doe
 ```
 GENERATOR_STRATEGY=mock.
 ```
-### Open the terminal and launch the Django shell: python 
+### Open the terminal and launch the Django shell: 
 ```
-manage.py shell
+python manage.py shell
 ```
 
 Paste the Demonstration Script 
@@ -128,7 +128,7 @@ GENERATOR_STRATEGY=suno
 ### Add your valid Suno API Token: 
 ```python
 # you can go find the token at https://sunoapi.org/ (you have to login this first)
-# then go to https://sunoapi.org/api-key and then go to API Key page and get it amd paste it instead <your_token>
+# then go to https://sunoapi.org/api-key and then go to API Key page and get it then paste it instead <your_token>
 SUNO_API_KEY=<your_token>
 ```
 
@@ -161,4 +161,5 @@ print(f"Status: {song.generation_status}")
 print(generator.check_status(song))
 ```
 
+### this is the example output of API mode
 ![alt text](image.png)
