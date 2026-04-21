@@ -52,19 +52,20 @@ class Song(models.Model):
     # Relationship: Each Song belongs to exactly one User. [cite: 17]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='songs')
     
-    title = models.CharField(max_length=255) # [cite: 68]
-    occasion = models.CharField(max_length=50, choices=Occasion.choices) # [cite: 70]
-    genre = models.CharField(max_length=50, choices=Genre.choices) # [cite: 71]
-    voice_type = models.CharField(max_length=50, choices=VoiceType.choices) # [cite: 72]
-    mood = models.CharField(max_length=50, choices=Mood.choices) # [cite: 73]
-    duration_time = models.DurationField(null=True, blank=True) # [cite: 74]
-    created_at = models.DateTimeField(auto_now_add=True) # [cite: 75]
-    generation_status = models.CharField(max_length=50, choices=GenerateStatus.choices, default=GenerateStatus.PENDING) # [cite: 76]
-    shared_link = models.URLField(max_length=500, blank=True, null=True) # [cite: 77]
+    title = models.CharField(max_length=255)
+    occasion = models.CharField(max_length=50, choices=Occasion.choices)
+    genre = models.CharField(max_length=50, choices=Genre.choices)
+    voice_type = models.CharField(max_length=50, choices=VoiceType.choices)
+    mood = models.CharField(max_length=50, choices=Mood.choices)
+    duration_time = models.DurationField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    generation_status = models.CharField(max_length=50, choices=GenerateStatus.choices, default=GenerateStatus.PENDING)
+    task_id = models.CharField(max_length=255, blank=True, null=True)
+    shared_link = models.URLField(max_length=500, blank=True, null=True)
     
     # Optional Fields
-    story_text = models.TextField(blank=True, null=True) # [cite: 78]
-    cover_image = models.ImageField(upload_to='covers/', blank=True, null=True) # [cite: 79]
+    story_text = models.TextField(blank=True, null=True)
+    cover_image = models.ImageField(upload_to='covers/', blank=True, null=True)
 
     def __str__(self):
         return f"{self.title} by {self.user.name}"
