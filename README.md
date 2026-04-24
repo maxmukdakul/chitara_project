@@ -104,7 +104,7 @@ Send! Make note of the user_id returned (e.g., 1).
 ### Step 2: Testing MOCK Mode
 This mode is offline and simulates a fast generation.
 
-Set up .env: Make sure your .env says GENERATOR_STRATEGY=mock. Restart your Django server if you changed it.
+Set up .env: Make sure your .env says ```GENERATOR_STRATEGY=mock```. Restart your Django server if you changed it.
 
 ### Generate the Song:
 
@@ -141,7 +141,7 @@ Send! You will immediately see the mock status response confirming it works offl
 ### Step 3: Testing SUNO Mode
 This mode connects to the real AI and takes a few minutes to render audio.
 
-Set up .env: Change your .env to GENERATOR_STRATEGY=suno and ensure SUNO_API_KEY is filled in. Restart your Django server.
+Set up .env: Change your .env to ```GENERATOR_STRATEGY=suno``` and ensure ```SUNO_API_KEY``` is filled in. Restart your Django server.
 
 ### Generate the Song:
 
