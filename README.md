@@ -69,97 +69,108 @@ http://127.0.0.1:8000/admin/
 
 This phase of the project implements the Strategy Design Pattern to support multiple interchangeable song generation behaviors without altering the core domain logic
 
-## 1. Environment Setup & Security
+## Environment Setup & Security
 To run the generation strategies, you must create a `.env` file in the root directory (next to `manage.py`).
 
 Create your `.env` file with this structure:
 ```python
 GENERATOR_STRATEGY=mock
+# Change to 'suno' to use the real AI generator
 SUNO_API_KEY=your_real_api_key_here
 ```
 
-## 2. How to Run Mock Mode
-The Mock strategy simulates song generation locally. It is deterministic and does not call any external APIs .
 
-### Open your .env file and set:    
+
+## How to Test in Postman
+To prove both strategies work, start your server by running ```python manage.py runserver``` in your terminal. Leave it running, and open the Postman app.(dont forget to open the venv first)
+
+### Step 1: Create a Domain User (Do this once)
+Django superusers do not count as domain users. You must create a user through this API first before generating any songs.
+
+Method: POST
+
+URL: http://127.0.0.1:8000/api/users/
+
+Body (raw JSON):
 ```
-GENERATOR_STRATEGY=mock.
-```
-### Open the terminal and launch the Django shell: 
-```
-python manage.py shell
-```
-
-Paste the Demonstration Script 
-```
-from domain.models import Song, User
-from domain.generation.factory import get_generator_strategy
-
-# 1. Setup a dummy user and song request
-user = User.objects.first()
-song = Song.objects.create(user=user, title="Test Strategy Song", genre="Pop", mood="Happy", occasion="Party")
-
-# 2. Load the active strategy (automatically determined by .env)
-generator = get_generator_strategy()
-
-# 3. Generate the song task (creates task ID)
-print(generator.generate(song))
-
-# 4. Verify the task ID and status saved in the database
-song.refresh_from_db()
-print(f"Task ID: {song.task_id}")
-print(f"Status: {song.generation_status}")
-
-# 5. Poll the API for status updates (e.g., PENDING, SUCCESS)
-print(generator.check_status(song))
+{
+    "name": "Testing User",
+    "google_oauth_id": "test_id_123"
+}
 ```
 
-### this is the example output of mock
+Send! Make note of the user_id returned (e.g., 1).
+
+### Step 2: Testing MOCK Mode
+This mode is offline and simulates a fast generation.
+
+Set up .env: Make sure your .env says GENERATOR_STRATEGY=mock. Restart your Django server if you changed it.
+
+### Generate the Song:
+
+Method: POST
+
+URL: http://127.0.0.1:8000/api/song-forms/
+
+Body (raw JSON):
+
+```
+{
+    "user_id": 1,
+    "title": "Mock Testing Song",
+    "occasion": "casual",
+    "genre": "pop",
+    "mood": "happy"
+}
+```
+
+Send! It will return a song_id and a mock task ID.
+
+![alt text](image.png)
+
+### Check Status:
+
+Method: GET
+
+URL: http://127.0.0.1:8000/api/song-forms/<your_song_id>/status/
+
+Send! You will immediately see the mock status response confirming it works offline.
+
 ![alt text](image-1.png)
 
-## 3. How to Run Suno API Mode
-The Suno strategy integrates with SunoApi.org to trigger live AI music generation tasks using Bearer Token authentication.
+### Step 3: Testing SUNO Mode
+This mode connects to the real AI and takes a few minutes to render audio.
 
-### Open your .env file and set: 
+Set up .env: Change your .env to GENERATOR_STRATEGY=suno and ensure SUNO_API_KEY is filled in. Restart your Django server.
+
+### Generate the Song:
+
+Method: POST
+
+URL: http://127.0.0.1:8000/api/song-forms/
+
+Body (raw JSON):
+
 ```
-GENERATOR_STRATEGY=suno
-```
-
-### Add your valid Suno API Token: 
-```python
-# you can go find the token at https://sunoapi.org/ (you have to login this first)
-# then go to https://sunoapi.org/api-key and then go to API Key page and get it then paste it instead <your_token>
-SUNO_API_KEY=<your_token>
-```
-
-### Open the terminal and launch the Django shell: 
-```
-python manage.py shell
-```
-
-### Paste the Demonstration Script
-```
-from domain.models import Song, User
-from domain.generation.factory import get_generator_strategy
-
-# 1. Setup a dummy user and song request
-user = User.objects.first()
-song = Song.objects.create(user=user, title="Test Strategy Song", genre="Pop", mood="Happy", occasion="Party")
-
-# 2. Load the active strategy (automatically determined by .env)
-generator = get_generator_strategy()
-
-# 3. Generate the song task (creates task ID)
-print(generator.generate(song))
-
-# 4. Verify the task ID and status saved in the database
-song.refresh_from_db()
-print(f"Task ID: {song.task_id}")
-print(f"Status: {song.generation_status}")
-
-# 5. Poll the API for status updates (e.g., PENDING, SUCCESS)
-print(generator.check_status(song))
+{
+    "user_id": 1,
+    "title": "Morning Vibes",
+    "occasion": "casual",
+    "genre": "pop",
+    "mood": "light and calm"
+}
 ```
 
-### this is the example output of API mode
-![alt text](image.png)
+Send! It will return a song_id and a status: pending. The AI is now working in the background.(And remember the song_id)
+
+![alt text](image-2.png)
+
+### Check Status (Polling):
+
+Method: GET
+
+URL: http://127.0.0.1:8000/api/song-forms/<your_song_id>/status/
+
+Send! If you check immediately, the Suno API response will say PENDING. Wait about 2-3 minutes and hit Send again. It will eventually change to SUCCESS and return the playable audioUrl links!
+
+![alt text](image-3.png)
