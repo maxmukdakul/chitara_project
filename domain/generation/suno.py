@@ -13,18 +13,28 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
         }
 
     def generate(self, song):
-        # 1. Create generation task
+        # 1. Build a powerful prompt including the voice type!
+        prompt_text = f"{song.voice_type} vocals, {song.genre} style. A song about {song.title}. Mood: {song.mood}. Occasion: {song.occasion}."
+        
+        # 2. Add the optional story/lyrics if the user typed them
+        if getattr(song, 'story_text', None):
+            prompt_text += f" Story/Lyrics: {song.story_text}"
+
+        # 3. Create generation task
         payload = {
-            "prompt": f"A {song.genre} song about {song.title}. Mood: {song.mood}. Occasion: {song.occasion}.",
+            "prompt": prompt_text,
             "instrumental": False, 
             "make_instrumental": False, 
             "wait_audio": False,
             "callBackUrl": "https://example.com/dummy-callback",
             "model": "V4_5",
-            "customMode": False  # <--- Added customMode here!
+            "customMode": False
         }
         
         response = requests.post(self.BASE_URL, json=payload, headers=self._get_headers())
+        
+        print(f"Suno API POST response status: {response.status_code}")
+        print(f"Suno API POST response text: {response.text}")
         
         if response.status_code == 200:
             data = response.json()
@@ -46,12 +56,27 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
 
     def check_status(self, song):
         if not song.task_id:
-            return {"error": "No task ID found for this song."}
+            return {"status": "error", "message": "No task ID"}
 
-        # 3. Check generation status via polling [cite: 473-475, 479]
         url = f"{self.BASE_URL}/record-info?taskId={song.task_id}"
         response = requests.get(url, headers=self._get_headers())
         
+        print(f"Suno API GET response status: {response.status_code}")
+        print(f"Suno API GET response text: {response.text}")
+        
         if response.status_code == 200:
-            return response.json()
-        return {"error": "Failed to fetch status"}
+            data = response.json()
+            # Extract status
+            suno_status = data.get('data', {}).get('status')
+            audio_url = None
+            if suno_status == 'SUCCESS':
+                suno_records = data.get('data', {}).get('response', {}).get('sunoData', [])
+                if suno_records:
+                    track = suno_records[0]
+                    audio_url = track.get('audioUrl') or track.get('streamAudioUrl')
+            return {
+                "status": suno_status,
+                "audio_url": audio_url,
+                "task_id": song.task_id
+            }
+        return {"status": "error"}

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chitara - AI Music</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body class="bg-gray-900 text-white font-sans min-h-screen pb-24">
+
+    <nav class="bg-gray-800 p-4 shadow-lg flex justify-between items-center sticky top-0 z-50">
+        <h1 class="text-2xl font-bold text-purple-400 cursor-pointer" onclick="if(currentUser) showSection('library-section')">🎵 Chitara</h1>
+        <div id="user-info" class="hidden flex items-center gap-4">
+            <button onclick="showSection('notifications-section')" class="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded">🔔 History</button>
+            <span id="user-name" class="text-gray-300 font-semibold"></span>
+            <button onclick="logout()" class="text-sm bg-red-600 hover:bg-red-700 px-3 py-1 rounded">Logout</button>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-6 max-w-3xl">
+        
+        <div id="login-section" class="flex flex-col items-center justify-center mt-20">
+            <h2 class="text-4xl font-bold mb-6 text-center">Welcome to Chitara</h2>
+            <p class="text-gray-400 mb-8 text-center">Sign in with Google to access your AI music library.</p>
+            
+            <div id="g_id_onload"
+                 data-client_id="439324998334-44pp5eceot3bbh0fagvbm6d4406fogu7.apps.googleusercontent.com" 
+                 data-context="signin"
+                 data-ux_mode="popup"
+                 data-callback="handleGoogleLogin"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"></div>
+        </div>
+
+        <div id="setup-section" class="hidden flex flex-col items-center justify-center mt-20">
+            <h2 class="text-3xl font-bold mb-6 text-center">Set Your Profile Name</h2>
+            <form id="setup-form" class="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-md" onsubmit="event.preventDefault(); submitProfileSetup();">
+                <div class="mb-4">
+                    <label class="block text-gray-400 mb-1">Display Name</label>
+                    <input type="text" id="setup-name" required class="w-full bg-gray-700 p-2 rounded text-white font-bold text-lg">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-3 rounded font-bold text-lg mt-4">
+                    Continue to Library
+                </button>
+            </form>
+        </div>
+
+        <div id="library-section" class="hidden">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
+                <h2 class="text-3xl font-bold">My Library</h2>
+                <button onclick="showSection('form-section')" class="bg-purple-600 hover:bg-purple-700 font-bold py-2 px-4 rounded shadow-lg shadow-purple-500/50">
+                    + Generate Song
+                </button>
+            </div>
+            <div id="song-list" class="space-y-4"></div>
+        </div>
+
+        <div id="notifications-section" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">Activity History</h2>
+                <button onclick="showSection('library-section')" class="bg-gray-600 px-4 py-2 rounded">Back</button>
+            </div>
+            <div id="notif-list" class="space-y-3"></div>
+        </div>
+
+        <div id="form-section" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4">Create New Song</h2>
+            <form id="generate-form" class="space-y-4" onsubmit="event.preventDefault(); showReview();">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-gray-300 mb-1 font-bold">Song Title <span class="text-red-400">*</span></label>
+                        <input type="text" id="song-title" required class="w-full bg-gray-700 p-2 rounded text-white placeholder-gray-400" placeholder="e.g. Morning Vibes">
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 mb-1 font-bold">Occasion <span class="text-red-400">*</span></label>
+                        <select id="song-occasion" class="w-full bg-gray-700 p-2 rounded text-white" required>
+                            <option value="Casual">Casual</option>
+                            <option value="Party">Party</option>
+                            <option value="Birthday">Birthday</option>
+                            <option value="Wedding">Wedding</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 mb-1 font-bold">Genre <span class="text-red-400">*</span></label>
+                        <select id="song-genre" class="w-full bg-gray-700 p-2 rounded text-white" required>
+                            <option value="Pop">Pop</option>
+                            <option value="Rock">Rock</option>
+                            <option value="Jazz">Jazz</option>
+                            <option value="Lofi">Lofi</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 mb-1 font-bold">Mood <span class="text-red-400">*</span></label>
+                        <select id="song-mood" class="w-full bg-gray-700 p-2 rounded text-white" required>
+                            <option value="Happy">Happy</option>
+                            <option value="Chill">Chill</option>
+                            <option value="Energetic">Energetic</option>
+                            <option value="Romantic">Romantic</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 mb-1 font-bold">Voice Type <span class="text-red-400">*</span></label>
+                        <select id="song-voice" class="w-full bg-gray-700 p-2 rounded text-white" required>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-gray-700">
+                    <div>
+                        <label class="block text-gray-400 mb-1">Story / Lyrics <span class="text-sm text-gray-500">(Optional)</span></label>
+                        <textarea id="song-story" class="w-full bg-gray-700 p-2 rounded text-white placeholder-gray-500" rows="3" placeholder="What is this song about?"></textarea>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-gray-400 mb-1">Cover Image <span class="text-sm text-gray-500">(Optional)</span></label>
+                        <input type="file" id="song-image" accept="image/*" class="w-full bg-gray-700 p-2 rounded text-white text-sm">
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" onclick="showSection('library-section')" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded">Cancel</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded font-bold">Next (Review)</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="review-section" class="hidden bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4">Review Your Song</h2>
+            <div class="bg-gray-700 p-4 rounded mb-4 text-gray-300 space-y-2">
+                <p><strong>Title:</strong> <span id="rev-title" class="text-white"></span></p>
+                <div class="grid grid-cols-2 gap-2">
+                    <p><strong>Occasion:</strong> <span id="rev-occasion" class="text-white"></span></p>
+                    <p><strong>Genre:</strong> <span id="rev-genre" class="text-white"></span></p>
+                    <p><strong>Mood:</strong> <span id="rev-mood" class="text-white"></span></p>
+                    <p><strong>Voice:</strong> <span id="rev-voice" class="text-white"></span></p>
+                </div>
+                <hr class="border-gray-600 my-2">
+                <p><strong>Story:</strong> <span id="rev-story" class="text-white italic"></span></p>
+                <p><strong>Cover Image:</strong> <span id="rev-image" class="text-white"></span></p>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button onclick="showSection('form-section')" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded">Back to Edit</button>
+                <button onclick="submitGeneration()" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded font-bold">Confirm & Generate</button>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="player-container" class="hidden fixed bottom-0 w-full bg-gray-800 border-t border-gray-700 p-4 flex justify-center items-center gap-4">
+        <div class="text-sm font-bold text-purple-400 w-1/4" id="now-playing">Playing: None</div>
+        <audio id="global-player" controls class="w-1/2"></audio>
+        <div class="w-1/4 text-right">
+            <button onclick="skipSong()" class="bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded text-sm">Skip Next ⏭</button>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let songLibrary = [];
+        let currentPlayingIndex = -1;
+        let pollInterval = null;
+        let tempGoogleEmail = "";
+
+        // Helper to switch screens
+        function showSection(sectionId) {
+            ['login-section', 'setup-section', 'library-section', 'form-section', 'review-section', 'notifications-section'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+            
+            if (sectionId === 'notifications-section') {
+                loadNotifications();
+            }
+        }
+
+        // --- AUTH ---
+        function handleGoogleLogin(response) {
+            try {
+                let base64Url = response.credential.split('.')[1];
+                let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                while (base64.length % 4 !== 0) { base64 += '='; }
+                const payload = JSON.parse(atob(base64));
+                
+                tempGoogleEmail = payload.email;
+
+                // ASK DJANGO: Have we seen this email before?
+                fetch('/users/check/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: tempGoogleEmail })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.exists) {
+                        // 🎉 RETURNING USER: Skip setup, go straight to library!
+                        currentUser = data;
+                        document.getElementById('user-info').classList.remove('hidden');
+                        document.getElementById('user-name').innerText = currentUser.name;
+                        showSection('library-section');
+                        loadLibrary();
+                        pollInterval = setInterval(loadLibrary, 10000); 
+                    } else {
+                        // 👋 NEW USER: Show the setup screen to pick a name
+                        document.getElementById('setup-name').value = ''; 
+                        showSection('setup-section');
+                    }
+                })
+                .catch(err => {
+                    console.error("Check user error:", err);
+                    alert("Could not connect to the server.");
+                });
+
+            } catch (error) {
+                alert("Login failed to read Google data. Please try again.");
+                console.error(error);
+            }
+        }
+
+        function submitProfileSetup() {
+            const chosenName = document.getElementById('setup-name').value;
+            
+            // REMOVED /api
+            fetch('/users/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: chosenName, email: tempGoogleEmail })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error("Server rejected login");
+                return res.json();
+            })
+            .then(data => {
+                currentUser = data;
+                document.getElementById('user-info').classList.remove('hidden');
+                document.getElementById('user-name').innerText = chosenName;
+                showSection('library-section');
+                loadLibrary();
+                
+                pollInterval = setInterval(loadLibrary, 10000); 
+            })
+            .catch(err => {
+                alert("Could not connect to the server.");
+                console.error(err);
+            });
+        }
+
+        function logout() {
+            currentUser = null;
+            clearInterval(pollInterval);
+            document.getElementById('user-info').classList.add('hidden');
+            document.getElementById('player-container').classList.add('hidden');
+            document.getElementById('global-player').pause();
+            showSection('login-section');
+        }
+
+        // --- LIBRARY ---
+        function loadLibrary() {
+            if(!currentUser) return;
+            // REMOVED /api
+            fetch(`/users/${currentUser.user_id}/library/`)
+            .then(res => res.json())
+            .then(data => {
+                songLibrary = data.library;
+                const list = document.getElementById('song-list');
+                list.innerHTML = '';
+                
+                if(songLibrary.length === 0) {
+                    list.innerHTML = '<div class="text-center p-10 bg-gray-800 rounded text-gray-400">Your library is empty. Let\'s make some music!</div>';
+                    return;
+                }
+
+                songLibrary.forEach((song, index) => {
+                    let actions = '';
+                    if (song.status === 'Success') {
+                        actions = `
+                            <button onclick="playSong(${index})" class="bg-green-600 hover:bg-green-500 px-3 py-1 rounded text-sm">Play</button>
+                            <a href="${song.audio_url}" download class="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-sm">Download</a>
+                            <button onclick="shareSong(${song.id})" class="bg-yellow-600 hover:bg-yellow-500 px-3 py-1 rounded text-sm">Share</button>
+                        `;
+                    } else if (song.status === 'Fail') {
+                        actions = `<span class="text-red-500 text-sm">Generation Failed</span>`;
+                    } else {
+                        checkStatusInBg(song.id);
+                        actions = `<span class="text-yellow-500 text-sm animate-pulse">Generating... Please wait</span>`;
+                    }
+
+                    list.innerHTML += `
+                        <div class="bg-gray-800 p-4 rounded-lg flex justify-between items-center border border-gray-700 shadow hover:border-gray-500 transition">
+                            <div>
+                                <h3 class="font-bold text-lg">${song.title}</h3>
+                                <p class="text-xs text-gray-400">Created: ${song.created_at}</p>
+                            </div>
+                            <div class="flex gap-2 items-center">
+                                ${actions}
+                                <button onclick="deleteSong(${song.id})" class="text-red-500 hover:text-red-400 ml-3 font-bold" title="Delete Song">X</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function checkStatusInBg(song_id) {
+            // We add the full origin to make sure the browser doesn't mess up the headers
+            const url = window.location.origin + `/song-forms/${song_id}/status/`;
+            fetch(url)
+            .then(res => {
+                if (!res.ok) console.error(`Status check failed for ${song_id}: ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                // If the backend says Success, reload the library immediately
+                if (data.status === 'Success') {
+                    loadLibrary();
+                }
+            })
+            .catch(e => console.log("Polling error:", e));
+        }
+
+        // --- NOTIFICATIONS ---
+        function loadNotifications() {
+            // REMOVED /api
+            fetch(`/users/${currentUser.user_id}/notifications/`)
+            .then(res => res.json())
+            .then(data => {
+                const list = document.getElementById('notif-list');
+                list.innerHTML = '';
+                if(data.history.length === 0) {
+                    list.innerHTML = '<p class="text-gray-400">No recent activity.</p>';
+                } else {
+                    data.history.forEach(notif => {
+                        list.innerHTML += `
+                            <div class="bg-gray-700 p-3 rounded flex justify-between border-l-4 border-purple-500">
+                                <span>${notif.message}</span>
+                                <span class="text-xs text-gray-400">${notif.time}</span>
+                            </div>
+                        `;
+                    });
+                }
+            });
+        }
+
+        // --- GENERATION ---
+        function showReview() {
+            // Grab required fields
+            document.getElementById('rev-title').innerText = document.getElementById('song-title').value;
+            document.getElementById('rev-occasion').innerText = document.getElementById('song-occasion').value;
+            document.getElementById('rev-genre').innerText = document.getElementById('song-genre').value;
+            document.getElementById('rev-mood').innerText = document.getElementById('song-mood').value;
+            document.getElementById('rev-voice').innerText = document.getElementById('song-voice').value;
+            
+            // Grab optional fields
+            const story = document.getElementById('song-story').value;
+            document.getElementById('rev-story').innerText = story ? story : 'None provided';
+            
+            const imgInput = document.getElementById('song-image');
+            document.getElementById('rev-image').innerText = imgInput.files.length > 0 ? imgInput.files[0].name : 'None provided';
+
+            showSection('review-section');
+        }
+
+        function submitGeneration() {
+            // Build the JSON payload to match your Django model
+            const payload = {
+                user_id: currentUser.user_id,
+                title: document.getElementById('song-title').value,
+                occasion: document.getElementById('song-occasion').value,
+                genre: document.getElementById('song-genre').value,
+                mood: document.getElementById('song-mood').value,
+                voice_type: document.getElementById('song-voice').value,
+                story_text: document.getElementById('song-story').value
+            };
+
+            // Send it to the backend
+            fetch('/song-forms/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(res => {
+                if(res.status === 429) alert("Daily limit reached! (20 songs max)");
+                showSection('library-section');
+                loadLibrary(); 
+                document.getElementById('generate-form').reset();
+            });
+        }
+
+        // --- PLAYER CONTROLS ---
+        const player = document.getElementById('global-player');
+        player.addEventListener('ended', skipSong);
+
+        function playSong(index) {
+            currentPlayingIndex = index;
+            const song = songLibrary[index];
+            document.getElementById('player-container').classList.remove('hidden');
+            document.getElementById('now-playing').innerText = `Playing: ${song.title}`;
+            player.src = song.audio_url;
+            player.play();
+        }
+
+        function skipSong() {
+            if (currentPlayingIndex === -1) return;
+            for (let i = currentPlayingIndex + 1; i < songLibrary.length; i++) {
+                if (songLibrary[i].status === 'Success') {
+                    playSong(i);
+                    return;
+                }
+            }
+            player.pause();
+            document.getElementById('now-playing').innerText = "End of Library";
+        }
+
+        // --- ACTIONS ---
+        function deleteSong(id) {
+            if(confirm("Are you sure you want to delete this song forever?")) {
+                // REMOVED /api
+                fetch(`/users/${currentUser.user_id}/library/${id}/`, { method: 'DELETE' })
+                .then(() => loadLibrary());
+            }
+        }
+
+        function shareSong(id) {
+            // REMOVED /api
+            const link = `${window.location.origin}/songs/shared/${id}/`;
+            alert(`Share this link with your friends to let them listen:\n\n${link}`);
+            fetch(link).then(() => loadLibrary()); 
+        }
+    </script>
+</body>
+</html>

@@ -1,8 +1,11 @@
+from django.shortcuts import render
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from domain.models.song import Song
 from domain.models.user import User
+from domain.models.notification import Notification
+from domain.models.choices.notification_type import NotificationType
 from domain.generation.factory import get_generator_strategy
 
 # --- 1. Endpoint to Create a User ---
@@ -36,95 +39,208 @@ def create_user_api(request):
 
     return JsonResponse({'error': 'Please use POST method'}, status=405)
 
-
-# --- 2. Endpoint to Generate a Song ---
 @csrf_exempt
 def generate_song_api(request):
-    """API to trigger Suno generation via Postman"""
+    """Creates a song and triggers the strategy pattern"""
     if request.method == 'POST':
         try:
-            body = json.loads(request.body)
+            data = json.loads(request.body)
+            user = User.objects.get(id=data.get('user_id'))
             
-            # Find the user by the ID sent in Postman
-            user_id = body.get('user_id')
-            try:
-                user = User.objects.get(id=user_id)
-            except User.DoesNotExist:
-                return JsonResponse({"error": f"User with ID {user_id} not found. Create a user first!"}, status=404)
-
-            # Create a pending song using the data from Postman
+            # We are now catching ALL the fields from the frontend!
             song = Song.objects.create(
-                user=user, 
-                title=body.get('title', 'Untitled Song'), 
-                genre=body.get('genre', 'Pop'), 
-                mood=body.get('mood', 'Happy'), 
-                occasion=body.get('occasion', 'Casual')
+                user=user,
+                title=data.get('title'),
+                occasion=data.get('occasion'),
+                genre=data.get('genre'),
+                mood=data.get('mood'),
+                voice_type=data.get('voice_type', 'Male'), # Catch voice
+                story_text=data.get('story_text', ''),     # Catch story
+                generation_status='Pending'
             )
             
-            # Trigger the strategy (Mock or Suno)
-            generator = get_generator_strategy()
-            result = generator.generate(song)
+            # Import and run your factory
+            strategy = get_generator_strategy()
+            result = strategy.generate(song)
             
-            # Return the exact format the TA expects
-            return JsonResponse({
-                'song_id': song.id,
-                'title': song.title,
-                'status': 'pending',
-                'strategy_result': result
-            }, status=200)
+            print(f"Generation result: {result}")
             
+            return JsonResponse({'song_id': song.id, 'status': 'pending', 'task': result}, status=200)
+            
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
             
-    return JsonResponse({'error': 'Please use POST method'}, status=405)
+    return JsonResponse({'error': 'POST method required'}, status=405)
 
 @csrf_exempt
 def check_song_status_api(request, song_id):
     """API to poll the status of a generating song and save metadata when done"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Please use GET method'}, status=405)
+
+    try:
+        # 1. Find the song
+        try:
+            song = Song.objects.get(id=song_id)
+        except Song.DoesNotExist:
+            return JsonResponse({"error": f"Song {song_id} not found."}, status=404)
+
+        if not song.task_id:
+            return JsonResponse({"error": "No task ID found."}, status=400)
+
+        # 2. Get Strategy (Import inside the function to avoid circular errors)
+        from domain.generation.factory import get_generator_strategy
+        generator = get_generator_strategy()
+        
+        print(f"--- Polling Suno for Task: {song.task_id} ---")
+        result = generator.check_status(song)
+        
+        print(f"Check status result: {result}")
+        
+        # 3. Extract status from the standardized response
+        status = result.get('status')
+        audio_url = result.get('audio_url')
+        print(f"Current status: {status}")
+
+        if status == 'SUCCESS':
+            song.audio_url = audio_url
+            song.generation_status = 'Success'
+            song.save()
+            # Create notification
+            Notification.objects.create(
+                user=song.user,
+                action_type=NotificationType.CREATED_SUCCESS,
+                message=f"Song '{song.title}' generated successfully."
+            )
+            print(f"Successfully saved song {song.id} audio URL!")
+        
+        elif status in ['FAILED', 'REJECTED']:
+            song.generation_status = 'Fail'
+            song.save()
+            # Create notification
+            Notification.objects.create(
+                user=song.user,
+                action_type=NotificationType.CREATED_FAIL,
+                message=f"Song '{song.title}' generation failed."
+            )
+
+        # 4. Return clear JSON to the frontend
+        return JsonResponse({
+            "song_id": song.id,
+            "status": song.generation_status,
+            "audio_url": song.audio_url,
+            "raw_api": result
+        }, status=200)
+
+    except Exception as e:
+        print(f"Error in Status Check: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+# --- 1. Get User Library ---
+@csrf_exempt
+def get_library_api(request, user_id):
+    """Returns all songs for a user, sorted newest first"""
+    if request.method == 'GET':
+        songs = Song.objects.filter(user_id=user_id).order_by('-created_at')
+        song_list = [{
+            "id": s.id,
+            "title": s.title,
+            "status": s.generation_status,
+            "duration": str(s.duration_time) if s.duration_time else None,
+            "audio_url": s.audio_url,
+            "created_at": s.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        } for s in songs]
+        return JsonResponse({"library": song_list}, status=200)
+    return JsonResponse({'error': 'GET method required'}, status=405)
+
+# --- 2. Delete Song ---
+@csrf_exempt
+def delete_song_api(request, user_id, song_id):
+    """Deletes a song and logs the notification"""
+    if request.method == 'DELETE':
+        try:
+            song = Song.objects.get(id=song_id, user_id=user_id)
+            title = song.title
+            song.delete()
+            
+            # Create notification
+            Notification.objects.create(
+                user_id=user_id,
+                action_type=NotificationType.DELETED,
+                message=f"Deleted song: {title}"
+            )
+            return JsonResponse({"message": "Song deleted successfully"}, status=200)
+        except Song.DoesNotExist:
+            return JsonResponse({"error": "Song not found or you don't own it"}, status=404)
+    return JsonResponse({'error': 'DELETE method required'}, status=405)
+
+# --- 3. Share/View Song ---
+@csrf_exempt
+def share_song_api(request, song_id):
+    """Allows anyone to view a song (no user_id required)"""
     if request.method == 'GET':
         try:
-            # 1. Find the song
-            try:
-                song = Song.objects.get(id=song_id)
-            except Song.DoesNotExist:
-                return JsonResponse({"error": f"Song with ID {song_id} not found."}, status=404)
-
-            if not song.task_id:
-                return JsonResponse({"error": "This song does not have a generation task ID."}, status=400)
-
-            # 2. Check the API
-            generator = get_generator_strategy()
-            result = generator.check_status(song)
-
-            # --- NEW CODE: SAVE THE METADATA ---
-            # BUG FIX: We must look inside the 'data' dictionary for the status!
-            if result.get('data', {}).get('status') == 'SUCCESS':
-                
-                # Update the database status
-                song.generation_status = 'Success' 
-                
-                # Dig into the Suno JSON to find the links
-                suno_data = result.get('data', {}).get('response', {}).get('sunoData', [])
-                if suno_data:
-                    first_track = suno_data[0]
-                    # Get the final audio and image URLs
-                    song.audio_url = first_track.get('audioUrl') or first_track.get('streamAudioUrl')
-                    song.image_url = first_track.get('imageUrl')
-                
-                # Save the changes to the database!
-                song.save()
-            # -----------------------------------------------------
-
-            # 3. Return the result to Postman
+            song = Song.objects.get(id=song_id)
+            
+            # Log share notification for the owner
+            Notification.objects.create(
+                user_id=song.user.id,
+                action_type=NotificationType.SHARED,
+                message=f"Song link accessed: {song.title}"
+            )
+            
             return JsonResponse({
-                "song_id": song.id,
                 "title": song.title,
-                "database_status": song.generation_status,
-                "saved_audio_url": song.audio_url,  # This will now show up!
-                "suno_api_response": result
+                "owner": song.user.name,
+                "audio_url": song.audio_url,
+                "cover_image": song.image_url,
             }, status=200)
+        except Song.DoesNotExist:
+            return JsonResponse({"error": "Song not found"}, status=404)
+    return JsonResponse({'error': 'GET method required'}, status=405)
 
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+# --- 4. Get Notifications History ---
+@csrf_exempt
+def get_notifications_api(request, user_id):
+    """Returns the action history for a user"""
+    if request.method == 'GET':
+        notifications = Notification.objects.filter(user_id=user_id).order_by('-timestamp')
+        history = [{
+            "action": n.action_type,
+            "message": n.message,
+            "time": n.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        } for n in notifications]
+        return JsonResponse({"history": history}, status=200)
+    return JsonResponse({'error': 'GET method required'}, status=405)
 
-    return JsonResponse({'error': 'Please use GET method'}, status=405)
+def index_view(request):
+    """Serves the main frontend UI"""
+    return render(request, 'domain/index.html')
+
+# --- 5. Check if User Exists ---
+@csrf_exempt
+def check_user_api(request):
+    """Checks if an email is already in the database before logging in"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            
+            # Try to find the user
+            user = User.objects.get(email=email)
+            
+            # If found, return their data
+            return JsonResponse({
+                "exists": True, 
+                "user_id": user.id, 
+                "name": user.name, 
+                "email": user.email
+            }, status=200)
+            
+        except User.DoesNotExist:
+            # If not found, tell the frontend they are new
+            return JsonResponse({"exists": False}, status=200)
+            
+    return JsonResponse({'error': 'POST method required'}, status=405)
