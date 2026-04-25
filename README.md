@@ -101,6 +101,9 @@ chitara_project/
     ├── admin.py
     ├── apps.py
     └── tests.py
+    ├── templates/
+    │   └── domain/
+    │       └── index.html
 ```
 
 ---
