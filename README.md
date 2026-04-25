@@ -208,11 +208,11 @@ erDiagram
         String Message
         Timestamp Timestamp
     }
+```
 
 ### 2. The Class Diagram (MVT Architecture)
 Paste this right below the first one.
 
-```text
 ```mermaid
 classDiagram
     %% Models
@@ -251,11 +251,11 @@ classDiagram
     Factory --> SongGeneratorStrategy : creates
     SongGeneratorStrategy <|.. MockStrategy : implements
     SongGeneratorStrategy <|.. SunoStrategy : implements
+```
 
 ### 3. The Sequence Diagram
 Paste this final block at the very bottom.
 
-```text
 ```mermaid
 sequenceDiagram
     actor Owner as User (Owner)
@@ -283,3 +283,4 @@ sequenceDiagram
     Suno-->>Strategy: Returns SUCCESS & MP3 URLs
     Strategy->>DB: Update Song to SUCCESS & Save URLs
     View-->>Owner: Return MP3 Links
+```
