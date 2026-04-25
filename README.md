@@ -94,8 +94,8 @@ URL: http://127.0.0.1:8000/api/users/
 Body (raw JSON):
 ```
 {
-    "name": "Testing User",
-    "google_oauth_id": "test_id_123"
+    "name": "Testing User4",
+    "email": "finaltest999@example.com"
 }
 ```
 
@@ -174,3 +174,5 @@ URL: http://127.0.0.1:8000/api/song-forms/<your_song_id>/status/
 Send! If you check immediately, the Suno API response will say PENDING. Wait about 2-3 minutes and hit Send again. It will eventually change to SUCCESS and return the playable audioUrl links!
 
 ![alt text](image-3.png)
+
+![alt text](image-4.png)

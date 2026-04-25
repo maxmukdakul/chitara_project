@@ -1,7 +1,8 @@
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from domain.models import Song, User
+from domain.models.song import Song
+from domain.models.user import User
 from domain.generation.factory import get_generator_strategy
 
 # --- 1. Endpoint to Create a User ---
@@ -13,17 +14,22 @@ def create_user_api(request):
             # Read the JSON data sent from Postman
             body = json.loads(request.body)
             
-            # Create the user in the database
-            # We use .get() so it doesn't crash if they forget to send a name
-            user = User.objects.create(
-                name=body.get('name', 'Anonymous User')
+            # Extract data with safe fallbacks
+            email = body.get('email', 'test@example.com')
+            name = body.get('name', 'Testing User')
+            
+            # Use get_or_create to prevent crashes on duplicate emails!
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={'name': name}
             )
             
             return JsonResponse({
-                "message": "User created successfully",
+                "message": "User created successfully" if created else "User already exists",
                 "user_id": user.id,
-                "name": user.name
-            }, status=201)
+                "name": user.name,
+                "email": user.email
+            }, status=201 if created else 200)
             
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
@@ -74,28 +80,47 @@ def generate_song_api(request):
 
 @csrf_exempt
 def check_song_status_api(request, song_id):
-    """API to poll the status of a generating song"""
+    """API to poll the status of a generating song and save metadata when done"""
     if request.method == 'GET':
         try:
-            # 1. Find the song in the database using the ID from the URL
+            # 1. Find the song
             try:
                 song = Song.objects.get(id=song_id)
             except Song.DoesNotExist:
                 return JsonResponse({"error": f"Song with ID {song_id} not found."}, status=404)
 
-            # 2. Check if it even has a task ID
             if not song.task_id:
                 return JsonResponse({"error": "This song does not have a generation task ID."}, status=400)
 
-            # 3. Use the strategy to poll the API for the latest status
+            # 2. Check the API
             generator = get_generator_strategy()
             result = generator.check_status(song)
 
-            # 4. Return the result to Postman
+            # --- NEW CODE: SAVE THE METADATA ---
+            # BUG FIX: We must look inside the 'data' dictionary for the status!
+            if result.get('data', {}).get('status') == 'SUCCESS':
+                
+                # Update the database status
+                song.generation_status = 'Success' 
+                
+                # Dig into the Suno JSON to find the links
+                suno_data = result.get('data', {}).get('response', {}).get('sunoData', [])
+                if suno_data:
+                    first_track = suno_data[0]
+                    # Get the final audio and image URLs
+                    song.audio_url = first_track.get('audioUrl') or first_track.get('streamAudioUrl')
+                    song.image_url = first_track.get('imageUrl')
+                
+                # Save the changes to the database!
+                song.save()
+            # -----------------------------------------------------
+
+            # 3. Return the result to Postman
             return JsonResponse({
                 "song_id": song.id,
                 "title": song.title,
                 "database_status": song.generation_status,
+                "saved_audio_url": song.audio_url,  # This will now show up!
                 "suno_api_response": result
             }, status=200)
 
