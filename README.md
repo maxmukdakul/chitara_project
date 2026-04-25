@@ -177,6 +177,8 @@ Send! If you check immediately, the Suno API response will say PENDING. Wait abo
 
 ![alt text](image-4.png)
 
+### 1. The Domain Model
+
 ```mermaid
 erDiagram
     USER ||--o{ SONG : "creates / plays"
@@ -211,7 +213,6 @@ erDiagram
 ```
 
 ### 2. The Class Diagram (MVT Architecture)
-Paste this right below the first one.
 
 ```mermaid
 classDiagram
@@ -254,7 +255,6 @@ classDiagram
 ```
 
 ### 3. The Sequence Diagram
-Paste this final block at the very bottom.
 
 ```mermaid
 sequenceDiagram
