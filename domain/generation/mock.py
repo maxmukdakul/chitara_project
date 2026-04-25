@@ -21,5 +21,6 @@ class MockSongGeneratorStrategy(SongGeneratorStrategy):
         return {
             "status": "SUCCESS",
             "task_id": song.task_id,
-            "audio_url": song.audio_url
+            "audio_url": song.audio_url,
+            "image_url": song.image_url
         }

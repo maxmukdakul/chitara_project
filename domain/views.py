@@ -102,10 +102,12 @@ def check_song_status_api(request, song_id):
         # 3. Extract status from the standardized response
         status = result.get('status')
         audio_url = result.get('audio_url')
+        image_url = result.get('image_url')
         print(f"Current status: {status}")
 
         if status == 'SUCCESS':
             song.audio_url = audio_url
+            song.image_url = image_url
             song.generation_status = 'Success'
             song.save()
             # Create notification

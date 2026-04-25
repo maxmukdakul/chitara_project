@@ -69,14 +69,17 @@ class SunoSongGeneratorStrategy(SongGeneratorStrategy):
             # Extract status
             suno_status = data.get('data', {}).get('status')
             audio_url = None
+            image_url = None
             if suno_status == 'SUCCESS':
                 suno_records = data.get('data', {}).get('response', {}).get('sunoData', [])
                 if suno_records:
                     track = suno_records[0]
                     audio_url = track.get('audioUrl') or track.get('streamAudioUrl')
+                    image_url = track.get('imageUrl')
             return {
                 "status": suno_status,
                 "audio_url": audio_url,
+                "image_url": image_url,
                 "task_id": song.task_id
             }
         return {"status": "error"}
