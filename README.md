@@ -176,3 +176,110 @@ Send! If you check immediately, the Suno API response will say PENDING. Wait abo
 ![alt text](image-3.png)
 
 ![alt text](image-4.png)
+
+```mermaid
+erDiagram
+    USER ||--o{ SONG : "creates / plays"
+    USER ||--o{ NOTIFICATION : "receives"
+    
+    USER {
+        String Name
+        String Email
+        Int Daily_Generate_Count
+        Date Last_Generate_Date
+    }
+    
+    SONG {
+        String Title
+        Occasion Occasion
+        Genre Genre
+        VoiceType Voice_Type
+        Mood Mood
+        Duration Duration_Time
+        DateTime Created_At
+        GenerateStatus GenerationStatus
+        String Shared_link
+        String Story_Text
+        Picture Cover_Image
+    }
+    
+    NOTIFICATION {
+        String ActionType
+        String Message
+        Timestamp Timestamp
+    }
+
+### 2. The Class Diagram (MVT Architecture)
+Paste this right below the first one.
+
+```text
+```mermaid
+classDiagram
+    %% Models
+    class User
+    class Song
+    class Notification
+    
+    %% Views & Templates (MVT)
+    class Views_API {
+        +create_user_api(request)
+        +generate_song_api(request)
+        +check_song_status_api(request)
+    }
+    class JSONResponse {
+        <<Template Layer>>
+    }
+
+    %% Strategy Pattern
+    class Factory {
+        +get_generator_strategy()
+    }
+    class SongGeneratorStrategy {
+        <<Interface>>
+        +generate(song)
+        +check_status(song)
+    }
+    class MockStrategy
+    class SunoStrategy
+
+    %% Relationships
+    Views_API --> User : reads/writes
+    Views_API --> Song : reads/writes
+    Views_API --> Notification : logs actions
+    Views_API --> JSONResponse : returns as Template
+    Views_API --> Factory : asks for strategy
+    Factory --> SongGeneratorStrategy : creates
+    SongGeneratorStrategy <|.. MockStrategy : implements
+    SongGeneratorStrategy <|.. SunoStrategy : implements
+
+### 3. The Sequence Diagram
+Paste this final block at the very bottom.
+
+```text
+```mermaid
+sequenceDiagram
+    actor Owner as User (Owner)
+    participant View as API View (views.py)
+    participant DB as Database (Models)
+    participant Factory as Strategy Factory
+    participant Strategy as Suno Strategy
+    participant Suno as External Suno API
+
+    Owner->>View: POST Form Data (Title, Genre, Mood, etc.)
+    View->>DB: Validate User Daily Limit
+    View->>DB: Create Song (Status: Pending)
+    View->>Factory: get_generator_strategy()
+    Factory-->>View: Returns active strategy
+    View->>Strategy: generate(song)
+    Strategy->>Suno: API Request to Suno
+    Suno-->>Strategy: Returns Task ID
+    Strategy->>DB: Save Task ID to Song
+    View-->>Owner: Return Pending Status & Task ID
+    
+    Note over Owner, DB: Later Polling for Status...
+    Owner->>View: GET /status/
+    View->>Strategy: check_status()
+    Strategy->>Suno: Fetch generation result
+    Suno-->>Strategy: Returns SUCCESS & MP3 URLs
+    Strategy->>DB: Update Song to SUCCESS & Save URLs
+    View-->>Owner: Return MP3 Links
