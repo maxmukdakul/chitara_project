@@ -44,18 +44,18 @@ def generate_song_api(request):
     """Creates a song and triggers the strategy pattern"""
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            user = User.objects.get(id=data.get('user_id'))
+            user = User.objects.get(id=request.POST.get('user_id'))
             
             # We are now catching ALL the fields from the frontend!
             song = Song.objects.create(
                 user=user,
-                title=data.get('title'),
-                occasion=data.get('occasion'),
-                genre=data.get('genre'),
-                mood=data.get('mood'),
-                voice_type=data.get('voice_type', 'Male'), # Catch voice
-                story_text=data.get('story_text', ''),     # Catch story
+                title=request.POST.get('title'),
+                occasion=request.POST.get('occasion'),
+                genre=request.POST.get('genre'),
+                mood=request.POST.get('mood'),
+                voice_type=request.POST.get('voice_type', 'Male'), # Catch voice
+                story_text=request.POST.get('story_text', ''),     # Catch story
+                cover_image=request.FILES.get('cover_image'),      # Catch file
                 generation_status='Pending'
             )
             

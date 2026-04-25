@@ -365,22 +365,25 @@
         }
 
         function submitGeneration() {
-            // Build the JSON payload to match your Django model
-            const payload = {
-                user_id: currentUser.user_id,
-                title: document.getElementById('song-title').value,
-                occasion: document.getElementById('song-occasion').value,
-                genre: document.getElementById('song-genre').value,
-                mood: document.getElementById('song-mood').value,
-                voice_type: document.getElementById('song-voice').value,
-                story_text: document.getElementById('song-story').value
-            };
+            // Build the FormData payload to handle file upload
+            const formData = new FormData();
+            formData.append('user_id', currentUser.user_id);
+            formData.append('title', document.getElementById('song-title').value);
+            formData.append('occasion', document.getElementById('song-occasion').value);
+            formData.append('genre', document.getElementById('song-genre').value);
+            formData.append('mood', document.getElementById('song-mood').value);
+            formData.append('voice_type', document.getElementById('song-voice').value);
+            formData.append('story_text', document.getElementById('song-story').value);
+            
+            const imgInput = document.getElementById('song-image');
+            if (imgInput.files.length > 0) {
+                formData.append('cover_image', imgInput.files[0]);
+            }
 
             // Send it to the backend
             fetch('/song-forms/', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: formData
             }).then(res => {
                 if(res.status === 429) alert("Daily limit reached! (20 songs max)");
                 showSection('library-section');
