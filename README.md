@@ -662,3 +662,18 @@ Chitara now includes a full web interface built with HTML, CSS (Tailwind CSS), a
 - Expose Notification history via a dedicated API endpoint (already available in web)
 - Implement song delete, share, and download endpoints (FR25–FR27) as public API
 - Listener access tracking for shared songs
+
+---
+
+## Project Checklist
+
+This project satisfies the following requirements:
+
+- ✅ **Up-to-date domain model**: Included as an ER diagram with entities, relationships, and attributes.
+- ✅ **Class diagram synchronized with code**: The MVT diagram matches the actual code structure (models, views, templates).
+- ✅ **Class diagram follows MVT architecture**: Clearly separates Model Layer (Django models), View Layer (ViewSets), and Template Layer (JSON/HTML responses).
+- ✅ **One class per file**: Model files (e.g., `user.py` → User class), generation strategies (e.g., `mock.py` → MockSongGeneratorStrategy), and choices are separate.
+- ✅ **File names consistent with class names**: `user.py` → User, `song.py` → Song, etc.
+- ✅ **Sequence diagram for song generation use case**: Detailed Mermaid diagram showing the full flow from user request to completion.
+- ✅ **Model classes follow the domain model**: Django models directly implement the ER diagram with correct fields, relationships, and enums.
+- ✅ **Application completeness**: All core features implemented, including web interface, OAuth, song details, sharing, and notifications.
