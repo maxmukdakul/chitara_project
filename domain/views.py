@@ -1,6 +1,6 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 import json
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from domain.models.song import Song
 from domain.models.user import User
@@ -118,7 +118,7 @@ def check_song_status_api(request, song_id):
             )
             print(f"Successfully saved song {song.id} audio URL!")
         
-        elif status in ['FAILED', 'REJECTED']:
+        elif status in ['FAILED', 'REJECTED', 'GENERATE_AUDIO_FAILED']:
             song.generation_status = 'Fail'
             song.save()
             # Create notification
@@ -193,15 +193,31 @@ def share_song_api(request, song_id):
                 message=f"Song link accessed: {song.title}"
             )
             
-            return JsonResponse({
-                "title": song.title,
-                "owner": song.user.name,
-                "audio_url": song.audio_url,
-                "cover_image": song.image_url,
-            }, status=200)
+            return render(request, 'domain/song_detail.html', {
+                'song': song,
+                'user': None,
+                'shared_link': None
+            })
         except Song.DoesNotExist:
-            return JsonResponse({"error": "Song not found"}, status=404)
+            return HttpResponse("Song not found", status=404)
     return JsonResponse({'error': 'GET method required'}, status=405)
+
+def song_detail(request, song_id):
+    """View song details for owners"""
+    try:
+        song = Song.objects.get(id=song_id)
+        user = request.session.get('user')
+        if user and song.user.id == user['user_id']:
+            shared_link = f"{request.scheme}://{request.get_host()}/songs/shared/{song.id}/"
+            return render(request, 'domain/song_detail.html', {
+                'song': song,
+                'user': user,
+                'shared_link': shared_link
+            })
+        else:
+            return redirect(f'/songs/shared/{song.id}/')
+    except Song.DoesNotExist:
+        return HttpResponse("Song not found", status=404)
 
 # --- 4. Get Notifications History ---
 @csrf_exempt

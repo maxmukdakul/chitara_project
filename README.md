@@ -577,6 +577,7 @@ GET http://127.0.0.1:8000/api/song-forms/{song_id}/status/
 | `/users/{id}/library/` | Get user's song library |
 | `/users/{id}/notifications/` | Get user's notification history |
 | `/song-forms/` | Submit song generation (web) |
+| `/songs/{id}/` | View song details (owners) |
 | `/songs/shared/{id}/` | Shared song playback |
 
 ---
@@ -596,8 +597,9 @@ Chitara now includes a full web interface built with HTML, CSS (Tailwind CSS), a
 - **Song Library**: View all your generated songs, with status indicators (Pending, Success, Fail).
 - **Generate Songs**: Use an intuitive form to create new songs with title, occasion, genre, mood, voice type, optional story, and cover image.
 - **Review Before Generation**: Preview your song details before submitting for generation.
-- **Audio Player**: Play songs directly in the browser with a global player at the bottom of the screen.
-- **Actions**: Download, share (generate shareable links), and delete songs.
+- **Song Details**: Click on a song title to view its dedicated page with cover image, audio player, and share link.
+- **Audio Player**: Full-featured player with time scrubber on individual song pages.
+- **Sharing**: Copy shareable links that open public playback pages.
 - **Notifications History**: View your activity log (generation success/fail, deletions, etc.).
 - **Daily Limit Enforcement**: Alerts if you exceed 20 songs per day.
 - **Responsive Design**: Works on desktop and mobile devices using Tailwind CSS.
@@ -638,7 +640,7 @@ Chitara now includes a full web interface built with HTML, CSS (Tailwind CSS), a
 | Daily generation limit (20/day) | ✅ Done | Enforced in view layer |
 | Admin panel | ✅ Done | `http://127.0.0.1:8000/admin/` |
 | Notification logging | ✅ Done | Model and web endpoints implemented; API endpoint available |
-| Song delete / share / download | ✅ Done | Implemented in web interface; API endpoints defined but not exposed |
+| Song delete / share / download | ✅ Done | Implemented in web interface with dedicated song pages |
 | Google OAuth login | ✅ Done | Implemented in web interface for user authentication |
 | Frontend / UI | ✅ Done | Full web interface with Google OAuth, song generation, library, player, and notifications |
 

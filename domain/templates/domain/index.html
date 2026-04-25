@@ -292,7 +292,7 @@
                     list.innerHTML += `
                         <div class="bg-gray-800 p-4 rounded-lg flex justify-between items-center border border-gray-700 shadow hover:border-gray-500 transition">
                             <div>
-                                <h3 class="font-bold text-lg">${song.title}</h3>
+                                <h3 class="font-bold text-lg cursor-pointer text-purple-400 hover:text-purple-300" onclick="window.location.href='/songs/${song.id}/'">${song.title}</h3>
                                 <p class="text-xs text-gray-400">Created: ${song.created_at}</p>
                             </div>
                             <div class="flex gap-2 items-center">

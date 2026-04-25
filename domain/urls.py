@@ -14,4 +14,5 @@ urlpatterns = [
     path('users/<int:user_id>/library/<int:song_id>/', views.delete_song_api, name='delete_song'),
     path('users/<int:user_id>/notifications/', views.get_notifications_api, name='get_notifications'),
     path('songs/shared/<int:song_id>/', views.share_song_api, name='share_song'),
+    path('songs/<int:song_id>/', views.song_detail, name='song_detail'),
 ]
